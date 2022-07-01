@@ -1,0 +1,35 @@
+:root{
+    --red: #e62020;
+    --yellow: #ffe600;
+}
+
+@font-face {
+    font-family: Omni;
+    src: url(fonts/OmniMasthead-MVwLx.ttf);
+}
+
+body{
+    background-color: var(--red);
+    color: var(--yellow);
+    text-align: center;
+}
+
+#title{
+    margin-top: 40vh;
+}
+
+#title span {
+    font-family: Omni;
+    background-color: black;
+    color: white;
+    font-size: 80pt;
+    padding: 20px;
+}
+
+ul{
+    list-style-type: none;
+}
+
+ul li::before{
+    content: "#";
+}
