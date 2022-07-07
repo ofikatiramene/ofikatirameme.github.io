@@ -25,11 +25,3 @@ body{
     font-size: 80pt;
     padding: 20px;
 }
-
-ul{
-    list-style-type: none;
-}
-
-ul li::before{
-    content: "#";
-}
