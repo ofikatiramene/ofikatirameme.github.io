@@ -14,14 +14,38 @@ body{
     text-align: center;
 }
 
-#title{
-    margin-top: 40vh;
+::selection{
+    background-color: var(--yellow);
+    color: var(--red);
 }
 
-#title span {
+h1{
+    margin: auto;
+    margin-top: 50px;
     font-family: Omni;
     background-color: black;
     color: white;
-    font-size: 80pt;
+    font-size: 8vw;
+    font-weight: normal;
+    width: fit-content;
     padding: 20px;
+}
+
+h1::selection{
+    color: black;
+    background-color: white;
+}
+
+ul{
+    list-style-type: none;
+    padding: 0
+}
+
+ul li::before{
+    content: "# ";
+}
+
+a{
+    color: var(--yellow);
+    text-decoration: none;
 }
