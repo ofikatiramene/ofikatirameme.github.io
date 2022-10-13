@@ -1,15 +1,29 @@
 const canvas = document.getElementById("cv");
-const cw = window.innerWidth, ch = window.innerHeight - 3 * (window.innerHeight % 4);
-const size = 4;
-const [w, h] = [cw, ch].map(v => v / size)
-const ctx = new Mondrian.Context(canvas, cw, ch, {color: "lightblue", pixelSize: size});
-const mouse = new Mondrian.Mouse(ctx);
-const sandColor = Mondrian.colorSchemes.autumnal2;
+
+const mobile = screen.width < 768;
+
+const size = 4;//mobile? 8 : 4;
+
+const cw = window.innerWidth, ch = window.innerHeight - 3 * (window.innerHeight % size); // cw = 120, ch = 120; // 
+const [w, h] = [cw, ch].map(v => Math.floor(v / size))
+
+const ctx = new Mondrian.Context(canvas, cw, ch, {color: Mondrian.colorNames.LightBlue, pixelSize: size});
+const mouse = ctx.getMouse(true);
 const rng = randomRNG();
 
+const matrix = (w, h, func) => Array.from({length: w}, (_, x) => Array.from({length: h}, (_, y) => func(x, y)))
+
+
+// ------*> MATERIAL CLASSES <*-----------------------------------------------------------------------
+
+/** Base class for all materials */
 class Dot {
+
+	/** List of all current dots */
 	static dots = [];
-	static matrix = invokeMatrix(w, h);
+
+	/** Matrix of all current dots */
+	static matrix = matrix(w, h, () => null)
 
 	constructor(x, y, color) {
 		this.x = x;
@@ -32,7 +46,12 @@ class Dot {
 	}
 
 	static destroy(x, y){
-		if (Dot.matrix[x][y]) Dot.matrix[x][y].die()
+		try{
+			if (Dot.matrix[x][y]) Dot.matrix[x][y].die()
+			return true
+		}catch{
+			return false
+		}
 	}
 
 	get(dx, dy){
@@ -50,8 +69,8 @@ class Dot {
 			dot || 
 			this.x + dx < 0 ||
 			this.y + dy < 0 ||
-			this.x + dx >= w ||
-			this.y + dy >= h
+			this.x + dx >= Dot.matrix.length ||
+			this.y + dy >= Dot.matrix[0].length
 		)
 	}
 
@@ -87,15 +106,21 @@ class Dot {
 		Dot.matrix[this.x][this.y] = null
 	}
 
+	getColor(){
+		return this.color;
+	}
+
 	update(){}
 }
 
+/** Class that destroys dots using "create" method */
 class Erase{
 	static create(x, y){
 		Dot.destroy(x, y)
 	}
 }
 
+/** Base class for all fluid materials */
 class Fluid extends Dot{
 	constructor(x, y, color){
 		super(x, y, color);
@@ -103,14 +128,14 @@ class Fluid extends Dot{
 	}
 }
 
-class Sand extends Fluid{
+/** Base for sand variants */
+class SandBase extends Fluid{
 
-	static gradient = new Mondrian.Gradient(Mondrian.interpolateList(sandColor, 10));
 	static point = 0;
 	static inc = 0.001;
 
-	constructor(x, y){
-		super(x, y, Sand.gradient.randomDither(Sand.point).hex());
+	constructor(x, y, color){
+		super(x, y, new Mondrian.Gradient(Mondrian.interpolateList(color, 10)).randomDither(Sand.point).hex());
 		Sand.point += Sand.inc;
 		if (Sand.point >= 1 || Sand.point <= 0) Sand.inc = -Sand.inc;
 		return this
@@ -147,6 +172,27 @@ class Sand extends Fluid{
 	};
 }
 
+class Sand extends SandBase{
+	constructor(x, y){
+		super(x, y, Mondrian.colorSchemes.autumnal2);
+		return this
+	}
+}
+
+class Peachy extends SandBase{
+	constructor(x, y){
+		super(x, y, Mondrian.colorSchemes.peachy);
+		return this		
+	}
+}
+
+class IceCream extends SandBase{
+	constructor(x, y){
+		super(x, y, Mondrian.colorSchemes.icecream);
+		return this		
+	}
+}
+
 class Water extends Fluid{
 	constructor(x, y){
 		super(x, y, Mondrian.colorNames.DeepSkyBlue);
@@ -179,11 +225,11 @@ class Water extends Fluid{
 
 		}else{
 
-			if (!this.check(-1, 1)){
+			if (!this.check(-1, 1) && !this.check(-1, 0)){
 				moves.push([-1, 1])
 			}
 
-			if (!this.check(1, 1)){
+			if (!this.check(1, 1) && !this.check(1, 0)){
 				moves.push([1, 1])
 			}
 
@@ -204,33 +250,64 @@ class Block extends Dot{
 	}
 }
 
+
+// ------*> MENU <*----------------------------------------------------------------------
+
+/** Menu element */
 const menu = document.getElementById("menu");
 
 const hideMenu = () => menu.style.display = "none";
-
 const showMenu = () => menu.style.display = "block";
+
+/** Menu toggle element (Mobile only) */
+const toggle = document.getElementById("menu-toggle");
+
+if (mobile){
+
+	toggle.style.display = "block";
+
+	menu.style.top = (toggle.offsetHeight + 10) + "px";
+	menu.style.right = "10px";
+
+	document.body.style = "font-size: 15px;"
+
+	toggle.onclick = () => {
+		if (menu.style.display == "none"){
+			showMenu();
+		}else{
+			hideMenu();
+		}
+	}
+
+}else{
+
+	canvas.addEventListener("contextmenu", e => {
+		showMenu();
+
+		menu.style.left = Math.min(e.offsetX, cw - menu.clientWidth) + "px";
+		menu.style.top = Math.min(e.offsetY, ch - menu.clientHeight) + "px";
+	})
+
+}
 
 canvas.addEventListener("mousedown", hideMenu);
 
-canvas.addEventListener("contextmenu", e => {
-	menu.style.top = e.offsetY + "px";
-	menu.style.left = e.offsetX + "px";
-	showMenu()
-})
+/** List of materials to include in menu */
+const menuItems = [Sand, Peachy, IceCream, Water, Block, Erase]
 
-const menuItems = [Sand, Water, Block, Erase]
+/** Currently selected material */
+let Selected;
 
-let Selected = Sand;
-
-menuItems.forEach(Element => {
+menuItems.forEach(Material => {
 	let div = document.createElement("div");
-	div.innerHTML = Element.name;
+	div.innerHTML = Material.name;
 
 	div.onclick = () => {
 		for (let item of menu.children){
 			item.className = ""
 		}
-		Selected = Element;
+
+		Selected = Material;
 		div.className = "selected";
 		hideMenu()
 	}
@@ -238,18 +315,26 @@ menuItems.forEach(Element => {
 	menu.append(div);
 });
 
+menu.children[0].onclick()
+
+
+// ------*> LOGO <*----------------------------------------------------------------------
+
 const logo = Mondrian.Image.fromFile("../gubbins/logo.png");
 logo.load.then(() => {
 	logo.map((x, y, color) => {
-		if (color.css() == "rgba(0, 0, 0, 255)"){
-			Block.create(x + 1, y + ctx.height - logo.height - 2)
+		if (color.a != 0){
+			Block.create(x + 1, y + Dot.matrix[0].length - logo.height - 2)
 		}
 	})
 }).catch(console.warn)
 
-function pen(size, func){
-	invokeMatrix(size, size, (x, y) => {
-		func(x - Math.floor(size / 2), y - Math.floor(size / 2))
+
+// ------*> ANIMATION <*----------------------------------------------------------------------
+
+function pen(size, func, px = 0, py = 0){
+	matrix(size, size, (x, y) => {
+		func(x - Math.floor(size / 2) + px, y - Math.floor(size / 2) + py)
 	})
 }
 
@@ -257,21 +342,21 @@ const path = new Mondrian.Path((x, y) => {
 	pen(3, (px, py) => {
 		Selected.create(x + px, y + py);
 	})
-}) 
+})
 
 Mondrian.animate(() => {
 
 	ctx.clear();
 
-	path.draw(mouse.down, !mouse.down, mouse.x, mouse.y)
+	path.draw(mouse.down, !mouse.down, mouse.x, mouse.y);
 
 	for (let i = 0; i < Dot.dots.length; i++){
 		Dot.dots[i].update();
 
 		let dot = Dot.dots[i];
 		if (dot){
-			ctx.drawRect(dot.x, dot.y, 1, 1, {fillStyle: dot.color})
+			ctx.drawRect(dot.x, dot.y, 1, 1, {fillStyle: dot.getColor()})
 		}
-
 	}
 });
+

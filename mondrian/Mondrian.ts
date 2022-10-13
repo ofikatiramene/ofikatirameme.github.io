@@ -1,39 +1,90 @@
-"use strict";
-var Mondrian;
-(function (Mondrian) {
+namespace Mondrian {
+
+    /** Any string representation of a color. E.g. "#FF6600", "rgb(255, 128, 0)", "orange" etc. */
+    type ColorString = string;
+
+    /** Hexadecimal color code */
+    type HexCode = string
+
+    /** Object containing optional parameters for creating a Mondrian Context object */
+    interface ContextParams {
+
+        /** Default background color of canvas. Default: "black" */
+        color?: ColorString;
+
+        /** Width and Height of pixel. Default: 1 */
+        pixelSize?: number;
+
+        /** Whether or not to use borderbox sizing. Default: false */
+        borderBox?: boolean
+
+        /** If true,  */
+        useCanvasDims?: boolean
+    }
+
     const positions = [
         "tl", "tc", "tr",
         "ml", "mc", "mr",
         "bl", "bc", "br",
-    ];
+    ] as const
+
+    type Position = typeof positions[number]    
+
+    /** Object containing optional parameters for  */
+    interface drawParams {
+
+        /** Fill color of shape */
+        fillStyle?: ColorString;
+
+        /** Stroke color */
+        strokeStyle?: ColorString;
+
+        /** Stroke width */
+        lineWidth?: number;
+
+        /** Position to draw from */
+        position?: Position;
+    }
+
+
+
     /** Function to generate a random number between 0 and 1 */
-    Mondrian.rng = Math.random;
-    class Context {
+    export var rng: () => number = Math.random
+
+    export class Context {
+
         /** Canvas element that this context is tied to */
-        canvas;
+        canvas: HTMLCanvasElement;
+
         /** Width of canvas */
-        width;
+        width: number;
+
         /** Height of canvas */
-        height;
+        height: number;
+
         /** 2D Canvas rendering context for this canvas */
-        ctx;
+        ctx: CanvasRenderingContext2D;
+
         /** Size of pixel */
-        pixelSize;
+        pixelSize: number;
+
         /** Whether or not to include border width when calculating shape width and height */
-        borderBox;
+        borderBox: boolean;
+
         /** Background color, when Context.clear() is called, this color will fill the canvas */
-        color;
+        color: ColorString;
+
         /**
-         *
+         * 
          * @param canvas - Canvas element to draw on
          * @param width - Width of the canvas
          * @param height - Height of the canvas
          * @param params - Optional parameters for the context
          */
-        constructor(canvas, width, height, params = {}) {
+        constructor(canvas: HTMLCanvasElement, width: number, height: number, params: ContextParams = {}) {
             this.canvas = canvas;
             this.canvas.style.cssText += "image-rendering: -moz-crisp-edges; image-rendering: -webkit-crisp-edges; image-rendering: pixelated; image-rendering: crisp-edges;";
-            this.ctx = this.canvas.getContext("2d");
+            this.ctx = <CanvasRenderingContext2D>this.canvas.getContext("2d");
             this.canvas.width = width;
             this.canvas.height = height;
             this.canvas.style.backgroundColor = this.color = params.color ?? "black";
@@ -41,19 +92,21 @@ var Mondrian;
             this.width = width / (params.useCanvasDims ? 1 : this.pixelSize);
             this.height = height / (params.useCanvasDims ? 1 : this.pixelSize);
             this.borderBox = params.borderBox ?? false;
-            return this;
+            return this
         }
-        _setStyles(params) {
+
+
+        _setStyles(params: drawParams) {
             const { fillStyle, strokeStyle, lineWidth } = params;
-            if (fillStyle)
-                this.ctx.fillStyle = fillStyle;
-            if (strokeStyle)
-                this.ctx.strokeStyle = strokeStyle;
-            if (lineWidth)
-                this.ctx.lineWidth = lineWidth;
+            if (fillStyle) this.ctx.fillStyle = <string>fillStyle;
+            if (strokeStyle) this.ctx.strokeStyle = <string>strokeStyle;
+            if (lineWidth) this.ctx.lineWidth = lineWidth;
         }
+
         _resetStyles() {
+
         }
+
         /**
          * Draws a rectangle on the canvas
          * @param x - X coord of rectangle
@@ -62,19 +115,25 @@ var Mondrian;
          * @param height - Height of rectangle
          * @param params - Optional Parameters
          */
-        drawRect(x, y, width, height, params = {}) {
+        drawRect(x: number, y: number, width: number, height: number, params: drawParams = {}) {
             this._setStyles(params);
+
             [x, y] = Context._position(x, y, width, height, params.position);
+
             this.ctx.fillRect(x * this.pixelSize, y * this.pixelSize, width * this.pixelSize, height * this.pixelSize);
+
             if (params.strokeStyle || params.lineWidth) {
-                this.ctx.strokeRect(x, y, width, height);
+                this.ctx.strokeRect(x, y, width, height)
             }
+
             this._resetStyles();
         }
-        drawImage(img, x, y, position = "tl") {
+
+        drawImage(img: Image, x: number, y: number, position: Position = "tl"){
             [x, y] = Context._position(x, y, img.width, img.height, position);
-            this.ctx.putImageData(img.scaleUp(this.pixelSize).imageData, x, y);
+            this.ctx.putImageData(img.scaleUp(this.pixelSize).imageData, x, y)
         }
+
         //     drawLine(startX, startY, endX, endY, color = this.ctx.fillStyle, width = 1) {
         //         this.ctx.strokeStyle = color;
         //         this.ctx.lineWidth = width;
@@ -84,65 +143,84 @@ var Mondrian;
         //         this.ctx.closePath();
         //         this.ctx.stroke();
         //     };
+
         clear() {
             this.drawRect(0, 0, this.width, this.height, { fillStyle: this.color });
         }
+
         /** Creates an Image object from the */
-        snip(x, y, width, height) {
-            return new Image(this.ctx.getImageData(x, y, width, height));
+        snip(x: number, y: number, width: number, height: number): Image {
+            return new Image(this.ctx.getImageData(x, y, width, height))
         }
+
         toImage() {
-            return this.snip(0, 0, this.width, this.height);
+            return this.snip(0, 0, this.width, this.height)
         }
+
         toDataURL() {
-            return this.canvas.toDataURL();
+            return this.canvas.toDataURL()
         }
-        createElement() {
+
+        createElement(){
             let ctx = this;
-            let element = {
+
+            let element: {
+                yes: string
+            } = {
                 yes: "hello"
-            };
-            return element;
+            }
+
+            return element
         }
-        getMouse(useTouch = false) {
+
+        getMouse(useTouch: boolean = false){
             return new Mondrian.Mouse(this.canvas, useTouch, this.pixelSize);
         }
-        static _position(x, y, w, h, pos = "tl") {
-            if (pos.includes("m")) {
-                y -= Math.floor(h / 2);
+
+        private static _position(x: number, y: number, w: number, h: number, pos: Position = "tl"): [number, number]{
+            if (pos.includes("m")){
+                y -= Math.floor(h / 2)
+            }else if (pos.includes("b")){
+                y -= h
             }
-            else if (pos.includes("b")) {
-                y -= h;
+
+            if (pos.includes("c")){
+                x -= Math.floor(w / 2)
+            }else if (pos.includes("r")){
+                x -= w
             }
-            if (pos.includes("c")) {
-                x -= Math.floor(w / 2);
-            }
-            else if (pos.includes("r")) {
-                x -= w;
-            }
-            return [x, y];
+
+            return [x, y]
         }
-        static create(width, height, params = {}) {
-            return new Context(document.createElement("canvas"), width, height, params);
+
+        static create(width: number, height: number, params: ContextParams = {}) {
+            return new Context(document.createElement("canvas"), width, height, params)
         }
     }
-    Mondrian.Context = Context;
-    class Mouse {
+
+    export class Mouse {
         /** Element this mouse is tied to */
-        el;
+        el: HTMLElement;
+
         /** X Coord of the mouse relative to pixel size of the context */
-        x;
+        x: number;
+
         /** Y Coord of the mouse relative to pixel size of the context */
-        y;
+        y: number;
+
         /** X coord of the mouse on the context's canvas */
-        realx;
+        realx: number;
+
         /** Y coord of the mouse on the context's canvas */
-        realy;
+        realy: number;
+
         /** If the mouse's left button is down */
-        down;
+        down: boolean;
+
         /** If the mouse's right button is down */
-        rdown;
-        constructor(el, useTouch = false, pixelSize = 1) {
+        rdown: boolean;
+
+        constructor(el: HTMLElement, useTouch: boolean = false, pixelSize: number = 1) {
             this.el = el;
             this.x = 0;
             this.y = 0;
@@ -150,241 +228,289 @@ var Mondrian;
             this.realy = 0;
             this.down = false;
             this.rdown = false;
+
             this.el.addEventListener("mousedown", (e) => {
                 if (e.button == 0) {
-                    this.down = true;
+                    this.down = true
+                } else if (e.button == 2) {
+                    this.rdown = true
                 }
-                else if (e.button == 2) {
-                    this.rdown = true;
-                }
-            });
+            })
+
             this.el.addEventListener("mouseup", (e) => {
                 if (e.button == 0) {
-                    this.down = false;
+                    this.down = false
+                } else if (e.button == 2) {
+                    this.rdown = false
                 }
-                else if (e.button == 2) {
-                    this.rdown = false;
-                }
-            });
+            })
+
             this.el.addEventListener("mousemove", (e) => {
                 this.realx = e.offsetX;
                 this.x = Math.floor(e.offsetX / pixelSize);
+
                 this.realy = e.offsetY;
                 this.y = Math.floor(e.offsetY / pixelSize);
-            });
+            })
+
             this.el.addEventListener("mouseleave", (e) => {
-            });
+
+            })
+            
             this.el.addEventListener("contextmenu", (e) => {
-                e.preventDefault();
-            });
-            if (useTouch) {
+                e.preventDefault()
+            })
+
+            if (useTouch){
                 this.el.addEventListener("touchstart", e => {
                     e.preventDefault();
                     this.down = true;
+
                     let x = e.touches[0].clientX;
                     let y = e.touches[0].clientY;
+
                     this.realx = x;
                     this.x = Math.floor(x / pixelSize);
+
                     this.realy = y;
                     this.y = Math.floor(y / pixelSize);
-                });
+                })
+                
                 this.el.addEventListener("touchend", e => {
                     e.preventDefault();
                     this.down = false;
+
                     let x = e.changedTouches[0].clientX;
                     let y = e.changedTouches[0].clientY;
+
                     this.realx = x;
                     this.x = Math.floor(x / pixelSize);
+
                     this.realy = y;
                     this.y = Math.floor(y / pixelSize);
-                });
+                })
+                
                 this.el.addEventListener("touchmove", e => {
                     e.preventDefault();
                     let x = e.touches[0].clientX;
                     let y = e.touches[0].clientY;
+
                     this.realx = x;
                     this.x = Math.floor(x / pixelSize);
+
                     this.realy = y;
                     this.y = Math.floor(y / pixelSize);
-                });
+                })
             }
-            return this;
-        }
-        static fromCtx(ctx) {
-            return ctx.getMouse();
+
+            return this
         }
     }
-    Mondrian.Mouse = Mouse;
+
     /** Class for handling images */
-    class Image {
+    export class Image {
+
         /** ImageData for this image */
-        imageData;
+        imageData: ImageData;
+
         /** Width of image */
-        width;
+        width: number;
+
         /** Height of image */
-        height;
+        height: number;
+
         /** If this image was created using an asynchronous method, this promise will resolve when the image loads */
-        load;
+        load?: Promise<Image>
+
         /**
-         *
+         * 
          * @param imageData - ImageData object to create image from
          */
-        constructor(imageData) {
+        constructor(imageData: ImageData) {
             this.imageData = imageData;
             this.width = imageData.width;
             this.height = imageData.height;
-            return this;
+            return this
         }
-        getPixel(x, y) {
+
+        getPixel(x: number, y: number) {
             let point = (y * this.width * 4) + (x * 4);
-            return new Mondrian.Color(...this.imageData.data.slice(point, point + 4));
+            return new Mondrian.Color(...this.imageData.data.slice(point, point + 4))
         }
-        map(func) {
-            let matrix = [];
+
+
+        map(func: (x: number, y: number, color: Color) => any) {
+            let matrix: Array<any> = []
             for (let y = 0; y < this.imageData.height; y++) {
-                let row = [];
+                let row: Array<any> = []
                 for (let x = 0; x < this.imageData.width; x++) {
-                    row.push(func(x, y, this.getPixel(x, y)));
+                    row.push(func(x, y, this.getPixel(x, y)))
                 }
-                matrix.push(row);
+                matrix.push(row)
             }
             return matrix;
         }
-        scaleUp(factor) {
-            if (factor < 2 || !Number.isInteger(factor)) {
-                throw "Factor must be an int greater than or equal to 2";
+
+        scaleUp(factor: number){
+            if (factor < 2 || !Number.isInteger(factor)){
+                throw "Factor must be an int greater than or equal to 2"
             }
-            let data = [];
-            for (let y = 0; y < this.height; y++) {
-                let row = [];
-                for (let x = 0; x < this.width * factor; x += factor) {
+            let data: any[] = [];
+            for (let y = 0; y < this.height; y++){
+                let row: number[] = [];
+                for (let x = 0; x < this.width * factor; x += factor){
                     let i = (y * this.width * factor) + x;
-                    row = row.concat(...Array.from({ length: factor }, () => Array.from(this.imageData.data.slice(i, i + factor))));
+                    row = row.concat(...Array.from({length: factor}, () => Array.from(this.imageData.data.slice(i, i + factor))))
                 }
-                data.concat(...Array.from({ length: factor }, () => row));
+                data.concat(...Array.from({length: factor}, () => row))
             }
-            return new Image(new ImageData(data, this.width * factor, this.height * factor));
+            return new Image(new ImageData(data, this.width * factor, this.height * factor))
         }
+
         /** Gets image data from a file path */
-        static getImageData(path) {
+        static getImageData(path: string) {
             let img = document.createElement("img");
             img.src = path;
-            return new Promise((res, rej) => {
+
+            return new Promise((res: (data: ImageData) => any, rej) => {
                 img.onload = () => {
                     let cv = document.createElement("canvas");
-                    let ctx = cv.getContext("2d");
+                    let ctx = <CanvasRenderingContext2D>cv.getContext("2d");
                     ctx.drawImage(img, 0, 0, img.width, img.height);
                     let imagedata = ctx.getImageData(0, 0, img.width, img.height);
-                    res(imagedata);
-                };
-            });
+                    res(imagedata)
+                }
+            })
         }
+
         /** Creates an Image object from a file path */
-        static fromFile(path) {
+        static fromFile(path: string) {
             let image = new Image(new ImageData(1, 1));
+
             image.load = Image.getImageData(path).then(data => {
                 image.imageData = data;
                 image.width = data.width;
                 image.height = data.height;
-                return image;
-            });
-            return image;
+                return image
+            })
+
+            return image
         }
+
         /** Creates an image from a Context */
-        static fromCtx(width, height, func, params = {}) {
+        static fromCtx(width: number, height: number, func: (ctx: Context) => void, params: ContextParams = {}) {
             let ctx = Context.create(width, height, params);
             func(ctx);
-            return ctx.toImage();
+            return ctx.toImage()
         }
+
         /** Gets an image from an HTML input element */
-        static fromInput(input) {
+        static fromInput(input: HTMLInputElement) {
             let image = new Image(new ImageData(1, 1));
+
             image.load = new Promise((res, rej) => {
                 if (input.files && input.files[0]) {
                     let reader = new FileReader();
                     reader.addEventListener("load", () => {
-                        Image.getImageData(reader.result).then(data => {
+
+                        Image.getImageData(<string>reader.result).then(data => {
                             image.width = data.width;
                             image.height = data.height;
-                            image.imageData = data;
-                            res(image);
+                            image.imageData = data
+
+                            res(image)
                         });
-                    });
-                    reader.readAsDataURL(input.files[0]);
+                    })
+                    reader.readAsDataURL(input.files[0])
+                } else {
+                    rej("No file in this input found")
                 }
-                else {
-                    rej("No file in this input found");
-                }
-            });
-            return image;
+            })
+
+            return image
         }
     }
-    Mondrian.Image = Image;
-    function lerp(ax, ay, bx, by, s) {
-        return [ax + (bx - ax) * s, ay + (by - ay) * s];
+
+    type coord = number[]
+
+    export function lerp(ax: number, ay: number, bx: number, by: number, s: number): [number, number] {
+        return [ax + (bx - ax) * s, ay + (by - ay) * s]
     }
-    Mondrian.lerp = lerp;
-    class Path {
+
+    export class Path {
+
         /** Coords of the previous given point on the path, null if path not started */
-        previous;
-        res;
+        previous: number[] | null;
+        res: number;
+
         /** Function to call for each point on the path */
-        drawFunc;
-        constructor(drawFunc, res = 10) {
+        drawFunc: (x: number, y: number) => void;
+
+        constructor(drawFunc: (x: number, y: number) => void, res: number = 10) {
             this.previous = null;
             this.res = res;
             this.drawFunc = drawFunc;
-            return this;
+            return this
         }
-        draw(start, end, x, y) {
+
+        draw(start: boolean, end: boolean, x: number, y: number) {
             if (start && this.previous) {
+
                 let [px, py] = this.previous;
-                let len = Math.sqrt((x - px) ** 2 + (y - py) ** 2);
+
+                let len = Math.sqrt((x - px)**2 + (y - py)**2)
+
                 for (let s = 0; s <= 1; s += 1 / this.res) {
-                    let [sx, sy] = lerp(px, py, x, y, s);
-                    this.drawFunc(Math.floor(sx), Math.floor(sy));
+                    let [sx, sy] = lerp(px, py, x, y, s)
+                    this.drawFunc(Math.floor(sx), Math.floor(sy))
                 }
-            }
+            } 
+
             if (end) {
-                this.previous = null;
-            }
-            else {
-                this.previous = [x, y];
+                this.previous = null
+            }else{
+                this.previous = [x, y]
             }
         }
     }
-    Mondrian.Path = Path;
-    class Pen {
-        drawFunc;
-        constructor(drawFunc) {
-            this.drawFunc = drawFunc;
+
+    export class Pen {
+
+        drawFunc: (x: number, y: number) => void
+
+        constructor(drawFunc: (x: number, y: number) => void) {
+            this.drawFunc = drawFunc
         }
     }
-    Mondrian.Pen = Pen;
+
     /** Runs the window.requestAnimationFrame loop with given function */
-    function animate(
-    /** Function to call for each frame in the animation loop */
-    func) {
-        let fps = 0;
+    export function animate(
+
+        /** Function to call for each frame in the animation loop */
+        func: (fps: number) => void
+
+    ) {
+        let fps = 0
         let frame = 0;
         let lastTime = new Date().getTime();
+
         function loop() {
             frame++;
             let time = new Date().getTime();
             if (time - lastTime >= 1000) {
                 fps = frame;
                 frame = 0;
-                lastTime = time;
-            }
-            ;
+                lastTime = time
+            };
             func(fps);
-            window.requestAnimationFrame(loop);
+            window.requestAnimationFrame(loop)
         }
-        window.requestAnimationFrame(loop);
+
+        window.requestAnimationFrame(loop)
     }
-    Mondrian.animate = animate;
+
     /** Object of all HTML color names and their hex code values */
-    Mondrian.colorNames = {
+    export const colorNames = {
         "AliceBlue": "#F0F8FF",
         "AntiqueWhite": "#FAEBD7",
         "Aqua": "#00FFFF",
@@ -533,186 +659,207 @@ var Mondrian;
         "WhiteSmoke": "#F5F5F5",
         "Yellow": "#FFFF00",
         "YellowGreen": "#9ACD32"
-    };
-    class Color {
-        r;
-        g;
-        b;
-        a;
-        constructor(r, g, b, a = 255) {
+    } as const
+
+    type ColorTuple = [number, number, number];
+
+    export class Color {
+
+        r: number;
+        g: number;
+        b: number;
+        a: number;
+
+        constructor(r: number, g: number, b: number, a: number = 255) {
             this.r = r;
             this.g = g;
             this.b = b;
             this.a = a;
-            return this;
+
+            return this
         }
+
         /**
          * Returns tuple of RGB values between 0 and 255
          */
-        rgb() {
-            return [this.r, this.g, this.b];
-        }
-        ;
+        rgb(): ColorTuple {
+            return [this.r, this.g, this.b]
+        };
+
         /**
          * Returns string in the format "rgba(r, g, b, a)"
          */
-        css() {
-            return `rgba(${this.r}, ${this.g}, ${this.b}, ${this.a})`;
+        css(): string {
+            return `rgba(${this.r}, ${this.g}, ${this.b}, ${this.a})`
         }
+
         /**
          * Returns hex code representation of this color
          */
-        hex() {
+        hex(): string {
             let [r, g, b] = this.rgb().map(x => {
                 let val = Math.floor(x).toString(16).toUpperCase();
-                return (val.length == 1) ? "0" + val : val;
+                return (val.length == 1) ? "0" + val : val
             });
-            return `#${r}${g}${b}`;
-        }
-        ;
+            return `#${r}${g}${b}`
+        };
+
         /**
          * Returns tuple of normalised RGB values between 0 and 1
          */
-        normalise() {
-            return this.rgb().map(v => v / 255);
-        }
-        ;
+        normalise(): ColorTuple {
+            return <ColorTuple>this.rgb().map(v => v / 255)
+        };
+
         /**
          * Returns tuple of XYZ values
          */
-        xyz() {
-            return this.normalise().map(v => (v <= 0.04045) ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
-        }
-        ;
-        brightness() {
-            return ((this.r + this.g + this.b) ** 0.43) / 17.37698463535537;
-        }
-        ;
-        grey() {
+        xyz(): ColorTuple {
+            return <ColorTuple>this.normalise().map(v => (v <= 0.04045) ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)
+        };
+
+        brightness(): number {
+            return ((this.r + this.g + this.b) ** 0.43) / 17.37698463535537
+        };
+
+        grey(): Color {
             let v = this.brightness() * 255;
-            return new Color(v, v, v);
+            return new Color(v, v, v)
+        };
+
+        bit3(): Color {
+            return Color.fromNormalised(...<ColorTuple>this.normalise().map(v => Math.round(v)))
         }
-        ;
-        bit3() {
-            return Color.fromNormalised(...this.normalise().map(v => Math.round(v)));
-        }
-        bit8() {
+
+        bit8(): Color {
             let [r, g, b] = this.normalise();
-            return Color.fromNormalised(Math.round(r * 7) / 7, Math.round(g * 7) / 7, Math.round(b * 3) / 3);
+            return Color.fromNormalised(Math.round(r * 7) / 7, Math.round(g * 7) / 7, Math.round(b * 3) / 3)
         }
-        closest(list, len = 1) {
+
+        closest(list: Color[], len = 1) {
             let rgb = this.rgb();
             let closest = [];
             for (let color of list) {
                 let newrgb = color.rgb();
                 let diffs = [];
                 for (let x = 0; x <= 2; x++) {
-                    diffs.push(Math.abs(rgb[x] - newrgb[x]));
-                }
-                ;
+                    diffs.push(Math.abs(rgb[x] - newrgb[x]))
+                };
                 closest.push({
                     color: color,
                     diff: diffs.reduce((a, b) => a + b)
-                });
+                })
             }
             closest.sort((a, b) => a.diff - b.diff);
-            return closest.slice(0, len == -1 ? list.length : len);
+            return closest.slice(0, len == -1 ? list.length : len)
         }
-        static fromHex(hex) {
-            return new Mondrian.Color(...[hex.slice(1, 3), hex.slice(3, 5), hex.slice(5, 7)].map(v => parseInt(v, 16)));
+
+        static fromHex(hex: string) {
+            return new Mondrian.Color(...<ColorTuple>[hex.slice(1, 3), hex.slice(3, 5), hex.slice(5, 7)].map(v => parseInt(v, 16)))
         }
-        static fromNormalised(r, g, b) {
-            return new Color(...[r, g, b].map(v => v * 255));
+
+        static fromNormalised(r: number, g: number, b: number) {
+            return new Color(...<ColorTuple>[r, g, b].map(v => v * 255))
         }
-        static fromXyz(x, y, z) {
-            return Color.fromNormalised(...[x, y, z].map(v => (v <= 0.0031308) ? v * 12.92 : 1.055 * (v ** (1 / 2.4)) - 0.055));
+
+        static fromXyz(x: number, y: number, z: number) {
+            return Color.fromNormalised(...<ColorTuple>[x, y, z].map(v => (v <= 0.0031308) ? v * 12.92 : 1.055 * (v ** (1 / 2.4)) - 0.055))
         }
-        static fromName(name) {
-            return Color.fromHex(Mondrian.colorNames[name]);
+
+        static fromName(name: keyof typeof colorNames) {
+            return Color.fromHex(colorNames[name])
         }
+
         static random() {
-            return Color.fromNormalised(Mondrian.rng(), Mondrian.rng(), Mondrian.rng());
+            return Color.fromNormalised(rng(), rng(), rng())
         }
     }
-    Mondrian.Color = Color;
-    function interpolate(a, b, mix) {
-        return a + (b - a) * mix;
-    }
-    ;
-    function gradient(color1, color2, mix) {
+
+    function interpolate(a: number, b: number, mix: number) {
+        return a + (b - a) * mix
+    };
+
+    export function gradient(color1: Color, color2: Color, mix: number) {
         let [r1, g1, b1] = color1.xyz();
         let [r2, g2, b2] = color2.xyz();
+
         let r = interpolate(r1, r2, mix);
         let g = interpolate(g1, g2, mix);
         let b = interpolate(b1, b2, mix);
+
         let gamma = 0.43;
         let brightness1 = (r1 + g1 + b1) ** gamma;
         let brightness2 = (r2 + g2 + b2) ** gamma;
+
         let brightness = interpolate(brightness1, brightness2, mix);
         let intensity = brightness ** (1 / gamma);
+
         if (r + g + b != 0) {
             let factor = intensity / (r + g + b);
             r *= factor;
             g *= factor;
-            b *= factor;
-        }
-        ;
-        return Color.fromXyz(r, g, b);
-    }
-    Mondrian.gradient = gradient;
-    ;
-    class Gradient {
-        list;
-        constructor(list) {
+            b *= factor
+        };
+
+        return Color.fromXyz(r, g, b)
+    };
+
+    export class Gradient {
+
+        list: Color[];
+
+        constructor(list: Color[]) {
             this.list = list;
         }
-        smooth(x) {
+
+        smooth(x: number) {
             let point = Math.min(1, Math.max(x, 0)) * (this.list.length - 1);
             let i = Math.floor(point);
-            return (i + 1 < this.list.length) ? gradient(this.list[i], this.list[i + 1], point - i) : this.list[i];
-        }
-        ;
-        dither(x) {
+            return (i + 1 < this.list.length) ? gradient(this.list[i], this.list[i + 1], point - i) : this.list[i]
+        };
+
+        dither(x: number): [number, Color, Color] {
             let point = Math.min(1, Math.max(x, 0));
             let section = 1 / (this.list.length - 1);
             let i = 0;
             for (; i < this.list.length - 1; i++) {
-                if (point >= section * i && point <= section * (i + 1))
-                    break;
+                if (point >= section * i && point <= section * (i + 1)) break
             }
-            return [(point - section * i) / section, this.list[i], this.list[i + 1]];
+            return [(point - section * i) / section, this.list[i], this.list[i + 1]]
         }
-        randomDither(x) {
+
+        randomDither(x: number) {
             let [mix, color1, color2] = this.dither(x);
-            return (Mondrian.rng() < mix) ? color2 : color1;
+            return (rng() < mix) ? color2 : color1;
         }
-        block(x) {
+
+        block(x: number) {
             if (x >= 1) {
-                return this.list[this.list.length - 1];
-            }
-            else if (x < 0) {
-                return this.list[0];
-            }
-            else {
-                return this.list[Math.floor(x * this.list.length)];
+                return this.list[this.list.length - 1]
+            } else if (x < 0) {
+                return this.list[0]
+            } else {
+                return this.list[Math.floor(x * this.list.length)]
             }
         }
-        static fromList(list) {
-            return new Gradient(list.map((rgb) => new Color(...rgb)));
+
+        static fromList(list: ColorTuple[]) {
+            return new Gradient(list.map((rgb) => new Color(...rgb)))
         }
     }
-    Mondrian.Gradient = Gradient;
-    function interpolateList(list, len) {
+
+    export function interpolateList(list: Color[], len: number) {
         let gradient = new Gradient(list);
         //return invokeList(len, (_, i: number) => gradient.smooth(i / (len - 1)));
-        return Array.from({ length: len }, (_, i) => gradient.smooth(i / (len - 1)));
+        return Array.from({ length: len }, (_, i: number) => gradient.smooth(i / (len - 1)))
     }
-    Mondrian.interpolateList = interpolateList;
-    function colorList(list) {
+
+    function colorList(list: ColorTuple[]) {
         return list.map(item => new Color(...item));
     }
+
     /** Some preset color schemes */
-    Mondrian.colorSchemes = {
+    export const colorSchemes = {
         autumnal: colorList([[125, 0, 0], [255, 52, 0], [255, 168, 0]]),
         peachy: colorList([[255, 139, 168], [253, 174, 174], [246, 226, 179]]),
         autumnal2: colorList([[86, 24, 70], [148, 11, 63], [199, 0, 57], [255, 99, 56]]),
@@ -720,28 +867,36 @@ var Mondrian;
         sakura: colorList([[77, 38, 0], [255, 102, 153], [255, 153, 255], [255, 179, 255]]),
         rainbow: colorList([[255, 0, 0], [255, 255, 0], [0, 255, 0], [0, 255, 255], [0, 0, 255], [255, 0, 255]]),
         ocean: ["#000e23", "#00126a", "#00489b", "#0095b8", "#ffffeb"].map(Color.fromHex),
+
         /** #141414, #68372d, #d17759, #ffb8ba, #f7e8d7 */
         icecream: ["#141414", "#68372d", "#d17759", "#ffb8ba", "#f7e8d7"].map(Color.fromHex),
         beach: ["#00408b", "#00b5c1", "#ffd96c", "#ff5e00", "#a20000"].map(Color.fromHex),
-    };
-    class Element {
-        static elements = [];
-        ctx;
-        x;
-        y;
-        width;
-        height;
-        constructor(ctx, x, y, width, height) {
+    }
+
+    export class Element {
+
+        static elements: Element[] = [];
+
+        ctx: Context
+        x: number
+        y: number
+        width: number
+        height: number
+
+        constructor(ctx: Context, x: number, y: number, width: number, height: number) {
             this.ctx = ctx;
             this.x = x;
             this.y = y;
             this.width = width;
             this.height = height;
+
             Element.elements.push(this);
-            return this;
+
+            return this
         }
+
     }
-    Mondrian.Element = Element;
+
     //     Element: class {
     //         constructor(ctx, x, y, width, height){
     //             this.ctx = ctx;
@@ -752,6 +907,7 @@ var Mondrian;
     //             this.height = height;
     //             this.mousedown = false;
     //             this.clickThrough = false;
+
     //             this.canvas.addEventListener("click", (event) => {
     //                 if (this.check(event)){
     //                     this.onclick(Mondrian.Element.createEvent(event, this))
@@ -797,17 +953,20 @@ var Mondrian;
     //             });
     //             return this         
     //         }
+
     //         check(event){
     //             return  event.offsetX > this.x && 
     //                     event.offsetX < this.x + this.width &&
     //                     event.offsetY > this.y && 
     //                     event.offsetY < this.y + this.height;
     //         }
+
     //         static createEvent(event, element){
     //             event.elementOffsetX = event.offsetX - element.x;
     //             event.elementOffsetY = event.offsetY - element.y;
     //             return event
     //         }
+
     //         onclick(event){}
     //         onrightclick(event){}
     //         onmousedown(event){}
@@ -819,5 +978,9 @@ var Mondrian;
     //         onmouseleave(event){}
     //         onwheel(event){}
     //     },
-})(Mondrian || (Mondrian = {}));
-//# sourceMappingURL=Mondrian.js.map
+
+
+
+
+
+}
