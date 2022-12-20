@@ -360,3 +360,8 @@ Mondrian.animate(() => {
 	}
 });
 
+if (!mobile && !localStorage.getItem("visited")){
+	alert("Left click to draw, right click to open menu")
+	localStorage.setItem("visited", true)
+}
+
