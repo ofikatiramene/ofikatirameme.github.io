@@ -1,30 +1,47 @@
+//#region setup 
+
 const canvas = document.getElementById("cv");
 
 const mobile = screen.width < 768;
 
-const size = 4;//mobile? 8 : 4;
+const size = 4;
 
-const cw = window.innerWidth, ch = window.innerHeight - 3 * (window.innerHeight % size); // cw = 120, ch = 120; // 
+let darkmode = false;
+
+const cw = window.innerWidth, ch = window.innerHeight;
 const [w, h] = [cw, ch].map(v => Math.floor(v / size))
 
-const ctx = new Mondrian.Context(canvas, cw, ch, {color: Mondrian.colorNames.LightBlue, pixelSize: size});
+const ctx = new Mondrian.Context(canvas, cw, ch, {color: Mondrian.colorNames.LightBlue, pixelSize: size, usePixelDims: false});
 const mouse = ctx.getMouse(true);
 const rng = randomRNG();
 
 const matrix = (w, h, func) => Array.from({length: w}, (_, x) => Array.from({length: h}, (_, y) => func(x, y)))
 
+//#endregion setup
 
-// ------*> MATERIAL CLASSES <*-----------------------------------------------------------------------
+//#region material
 
 /** Base class for all materials */
 class Dot {
 
-	/** List of all current dots */
+	/** 
+	 * List of all current dots
+	 * @type {Dot[]}
+	 */
 	static dots = [];
 
-	/** Matrix of all current dots */
+	/** 
+	 * Matrix of all current dots 
+	 * @type {Dot[][]}
+	 */
 	static matrix = matrix(w, h, () => null)
 
+	/**
+	 * 
+	 * @param {number} x 
+	 * @param {number} y 
+	 * @param {string} color 
+	 */
 	constructor(x, y, color) {
 		this.x = x;
 		this.y = y;
@@ -63,7 +80,7 @@ class Dot {
 		
 	}
 
-	check(dx, dy, type = ""){
+	check(dx, dy){
 		let dot = this.get(dx, dy)
 		return (
 			dot || 
@@ -83,8 +100,11 @@ class Dot {
 			return true
 		}
 		return false
-
 	};
+
+	moveAbs(x, y){
+		this.move(this.x - x, this.y - y)
+	}
 
 	swap(dx, dy){
 		if (this.check(dx, dy)){
@@ -110,6 +130,11 @@ class Dot {
 		return this.color;
 	}
 
+	/**
+	 * Method to call for each frame of the animation loop
+	 * @abstract
+	 * @returns {void}
+	 */
 	update(){}
 }
 
@@ -128,16 +153,16 @@ class Fluid extends Dot{
 	}
 }
 
-/** Base for sand variants */
+/** Base class for sand variants */
 class SandBase extends Fluid{
 
-	static point = 0;
+	static shade = 0;
 	static inc = 0.001;
 
 	constructor(x, y, color){
-		super(x, y, new Mondrian.Gradient(Mondrian.interpolateList(color, 10)).randomDither(Sand.point).hex());
-		Sand.point += Sand.inc;
-		if (Sand.point >= 1 || Sand.point <= 0) Sand.inc = -Sand.inc;
+		super(x, y, new Mondrian.Gradient(Mondrian.interpolateList(color, 10)).randomDither(Sand.shade).hex());
+		Sand.shade += Sand.inc;
+		if (Sand.shade >= 1 || Sand.shade <= 0) Sand.inc = -Sand.inc;
 		return this
 	};
 
@@ -147,11 +172,6 @@ class SandBase extends Fluid{
 			this.move(0, 1)
 			return
 		};
-
-		// if (below && below.constructor.name == "Water"){
-		// 	this.swap(0, 1)
-		// 	return
-		// }
 
 		let moves = [];
 
@@ -209,6 +229,7 @@ class Water extends Fluid{
 
 		let moves = [];
 
+		// If can't fall
 		if (this.check(-1, 1) && this.check(0, 1) && this.check(1, 1)){
 
 			if (!this.check(-1, 0)){
@@ -248,10 +269,15 @@ class Block extends Dot{
 		super(x, y, "black");
 		return this
 	}
+
+	getColor(){
+		return darkmode? "whitesmoke" : "black"
+	}
 }
 
+//#endregion material
 
-// ------*> MENU <*----------------------------------------------------------------------
+//#region menu
 
 /** Menu element */
 const menu = document.getElementById("menu");
@@ -271,54 +297,53 @@ if (mobile){
 
 	document.body.style = "font-size: 15px;"
 
-	toggle.onclick = () => {
-		if (menu.style.display == "none"){
-			showMenu();
-		}else{
-			hideMenu();
-		}
-	}
+	toggle.onclick = () => (menu.style.display == "none"? showMenu : hideMenu)()
 
 }else{
 
 	canvas.addEventListener("contextmenu", e => {
-		showMenu();
+		showMenu()
 
-		menu.style.left = Math.min(e.offsetX, cw - menu.clientWidth) + "px";
-		menu.style.top = Math.min(e.offsetY, ch - menu.clientHeight) + "px";
+		menu.style.left = Math.min(e.offsetX, cw - menu.clientWidth) + "px"
+		menu.style.top = Math.min(e.offsetY, ch - menu.clientHeight) + "px"
 	})
 
 }
 
-canvas.addEventListener("mousedown", hideMenu);
+canvas.addEventListener("mousedown", hideMenu)
 
-/** List of materials to include in menu */
+/** 
+ * List of materials to include in menu 
+ */
 const menuItems = [Sand, Peachy, IceCream, Water, Block, Erase]
 
-/** Currently selected material */
+/** 
+ * Currently selected material 
+ */
 let Selected;
 
 menuItems.forEach(Material => {
 	let div = document.createElement("div");
-	div.innerHTML = Material.name;
+	div.innerHTML = Material.name
 
-	div.onclick = () => {
+	div.onclick = (e) => {
 		for (let item of menu.children){
 			item.className = ""
 		}
 
-		Selected = Material;
-		div.className = "selected";
+		Selected = Material
+		div.className = "selected"
 		hideMenu()
 	}
 	
-	menu.append(div);
+	menu.append(div)
 });
 
 menu.children[0].onclick()
 
+//#endregion menu
 
-// ------*> LOGO <*----------------------------------------------------------------------
+//#region logo
 
 const logo = Mondrian.Image.fromFile("../gubbins/logo.png");
 logo.load.then(() => {
@@ -329,8 +354,9 @@ logo.load.then(() => {
 	})
 }).catch(console.warn)
 
+//#endregion logo
 
-// ------*> ANIMATION <*----------------------------------------------------------------------
+//#region animation
 
 function pen(size, func, px = 0, py = 0){
 	matrix(size, size, (x, y) => {
@@ -343,6 +369,15 @@ const path = new Mondrian.Path((x, y) => {
 		Selected.create(x + px, y + py);
 	})
 })
+
+// addEventListener("keydown", e => {
+// 	if (e.key == " ") {
+// 		let x = window.open();
+// 		x.document.open();
+// 		x.document.write(`<iframe src="${ctx.toDataURL()}">`);
+// 		x.document.close()
+// 	}
+// })
 
 Mondrian.animate(() => {
 
@@ -360,8 +395,18 @@ Mondrian.animate(() => {
 	}
 });
 
+//#endregion animation
+
+//#region help
+
 if (!mobile && !localStorage.getItem("visited")){
-	alert("Left click to draw, right click to open menu")
-	localStorage.setItem("visited", true)
+	let help = document.getElementById("help")
+	help.style.display = "block"
+	
+	addEventListener("click", () => {
+		help.style.display = "none"
+		localStorage.setItem("visited", true)
+	}, {once: true})
 }
 
+//#endregion help
